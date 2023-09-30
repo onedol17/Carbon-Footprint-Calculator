@@ -9,7 +9,14 @@
     tools:context=".MainActivity">
 
 
+    <LinearLayout
+        android:id="@+id/circle_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
+
+    </LinearLayout>
 
     <FrameLayout
         android:layout_width="300dp"
@@ -75,5 +82,7 @@
             </LinearLayout>
 
         </LinearLayout>
+
     </FrameLayout>
+
 </FrameLayout>

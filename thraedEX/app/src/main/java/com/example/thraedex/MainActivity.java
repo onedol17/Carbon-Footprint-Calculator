@@ -8,59 +8,58 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 
 
 
 
 public class  MainActivity extends AppCompatActivity implements LocationListener{
-
-    int hour;
-
     private LocationManager locationManager;
     private Location mLastlocation = null;
-    int value = 0;
 
-    int hour_flag = 0;
     String temp1;
     int Speed;
 
-    double dt;
     double sum_list;
     List<Double> listA = new ArrayList<>();
 
-    double carbonAmount;
-
-    String logFlag;
-    String getTime;
+    double carbonAmount=0.0;
+    FrameLayout bg;
     TextView tvCarbonAmount;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
         tvCarbonAmount = findViewById(R.id.tv_carbonAmount);
-        carbonAmount = 0.0;
+        bg = findViewById(R.id.background);
         //권한 체크
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
@@ -76,13 +75,14 @@ public class  MainActivity extends AppCompatActivity implements LocationListener
         boolean isEnable = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
 
+        // list 관리 스레드
+        ListAddThread lt = new ListAddThread();
+        lt.start();
 
-        BackgroundThread thread = new BackgroundThread();
-        thread.start();
-        ViewThread thread2 = new ViewThread();
-        thread2.start();
+        // list 계산 스레드
+        CalcThread ct = new CalcThread();
+        ct.start();
     }
-
     @Override
     public void onLocationChanged(@NonNull Location location) {
         @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
@@ -132,53 +132,94 @@ public class  MainActivity extends AppCompatActivity implements LocationListener
                 return;
             }
         }
-
     }
 
-    class ViewThread extends Thread {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        readData();
+    }
+
+    class CalcThread extends Thread {
         public void run() {
             while (true) {
                 try {Thread.sleep(1000);} catch (Exception e) {}
+                
+                // 리스트 로그로 확인
                 String temp = "[";
                 for(int i=0; i<listA.size(); i++) temp += String.valueOf(listA.get(i)) + ", ";
                 temp += "]";
                 Log.i("VAL", "ITEMS:" + temp);
+                
+                
+                // 탄소 소모량 계산
+                Calendar cToday = Calendar.getInstance();
+                sec = cToday.get(Calendar.SECOND);
+                if(sec % 10 == 0) {
+                    sum_list = 0;
+                    
+                    for(int i = 0; i < listA.size(); i++)
+                        sum_list += listA.get(i);
+                    
+                    carbonAmount += ((sum_list/10) * 0.002) * 0.1;
+                    temp1 = (String.valueOf(carbonAmount)).substring(0,3);
+                    
+                    Log.i("VAL", "carbonAmount:" + temp1);
 
+                    // UI 표출
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            tvCarbonAmount.setText(temp1);
+                            // TODO : tree 베어내는것을 표현하는 곳
+
+                        }
+                    });
+
+                    writeData();
+                    listA.clear();
+                }
             }
         }
     }
 
     int sec;
-    class BackgroundThread extends Thread {
+    class ListAddThread extends Thread {
         public void run(){
             while (true){
                 try {
                     Thread.sleep(1000);
                 }catch(Exception e){ }
-
-                Calendar cToday = Calendar.getInstance();
-
-                sec = cToday.get(Calendar.SECOND);
-                if(Speed <= 7) listA.add((double)Speed * 3.6);
-
-                if(sec % 10 == 0 && Speed <= 7) {
-                    sum_list = 0;
-                    for(int i = 0; i < listA.size(); i++)
-                        sum_list += listA.get(i);
-                    carbonAmount += ((sum_list/10) * 0.002) * 0.1;
-
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            tvCarbonAmount.setText(temp1);
-                        }
-                    });
-                    temp1 = (String.valueOf(carbonAmount)).substring(0,3);
-                    Log.i("VAL", "carbonAmount:" + temp1);
-                    Log.i("VAL", "carbonAmount:" + carbonAmount);
-                    listA.clear();
-                }
+                
+                if (Speed >= 7) listA.add((double)Speed * 3.6);
             }
+        }
+    }
+
+    private void writeData() {
+        try {
+            BufferedWriter bw = new BufferedWriter(new FileWriter(getFilesDir() + "text.txt", false));
+
+            bw.write(String.valueOf(carbonAmount));
+            bw.close();
+            Log.d("RB", String.valueOf(getFilesDir()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private void readData() {
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(getFilesDir() + "text.txt"));
+            String readStr ="";
+            String str = null;
+            while((str=br.readLine())!=null) readStr +=str +"\n";
+            br.close();
+            Log.d("RB", readStr);
+            carbonAmount = Double.parseDouble(readStr);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
