@@ -37,9 +37,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 
-
-
-
 public class  MainActivity extends AppCompatActivity implements LocationListener{
     private LocationManager locationManager;
     private Location mLastlocation = null;
@@ -53,6 +50,7 @@ public class  MainActivity extends AppCompatActivity implements LocationListener
     double carbonAmount=0.0;
     FrameLayout bg;
     TextView tvCarbonAmount;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,6 +69,7 @@ public class  MainActivity extends AppCompatActivity implements LocationListener
         if (lastKnownLocation != null) {
             @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         }
+
         // GPS 사용 가능 여부 확인
         boolean isEnable = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
@@ -82,7 +81,28 @@ public class  MainActivity extends AppCompatActivity implements LocationListener
         // list 계산 스레드
         CalcThread ct = new CalcThread();
         ct.start();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    Post post = new Post("https://taemin-backend.run.goorm.site/update");
+                    try {
+                        JSONObject subjsonObject = new JSONObject();
+                        subjsonObject.put("userid", getIntent().getExtras().getString("userid"));
+                        subjsonObject.put("spend", carbonAmount);
+                        post.execute(subjsonObject.toString()).get();
+                        JSONObject response = post.getResponse();
+                        Thread.sleep(500);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+
     }
+
     @Override
     public void onLocationChanged(@NonNull Location location) {
         @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
@@ -91,7 +111,6 @@ public class  MainActivity extends AppCompatActivity implements LocationListener
         //  getSpeed() 함수를 이용하여 속도를 계산
         @SuppressLint("DefaultLocale") double getSpeed = Double.parseDouble(String.format("%.3f", location.getSpeed()));
         String formatDate = sdf.format(new Date(location.getTime()));
-
 
         Speed = (int) getSpeed;
 

@@ -8,15 +8,12 @@
     android:background="@color/secondary_500"
     tools:context=".MainActivity">
 
-
-    <LinearLayout
-        android:id="@+id/circle_layout"
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:textSize="41sp"
+        android:text="🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢"/>
 
-
-    </LinearLayout>
 
     <FrameLayout
         android:layout_width="300dp"
@@ -82,6 +79,7 @@
             </LinearLayout>
 
         </LinearLayout>
+
 
     </FrameLayout>
 
